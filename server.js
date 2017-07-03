@@ -43,13 +43,11 @@ app.get("/stretch", function (request, response) {
       
       var range = [Math.floor(width/10), width];
       if (side === 'right') {
-        range = [0, Math.floor(width/10)];
+        range = [0, width - Math.floor(width/10)];
       } 
       
       var distribution = random.integer(range[0], range[1]);
       var offset = distribution(engine);
-      
-      console.log(range, offset);
       
 /*
 
@@ -75,12 +73,8 @@ app.get("/stretch", function (request, response) {
 */
       // get the colors at the offset, (x, 0-height)
       var pixels = Array.from({length:height}, (v, i) => i).map(y => {
-        console.log(offset, y);
         return image.getPixelColor(offset, y);
       });
-
-      console.log(pixels.slice(0, 10));
-      console.log(pixels.length);
       
       var s = side === 'left' ? 0 : offset;
       var e = side === 'left' ? offset : width;
@@ -90,9 +84,15 @@ app.get("/stretch", function (request, response) {
       var copy = image.clone();
       for (var i = s; i < e; i++) {
         for (var j = 0; j < height; j++) {
-          var pixel = i === offset-1  ? jimp.rgbaToInt(0, 0, 0, 1) : pixels[j];
-          copy.setPixelColor(pixel, i, j);
+          copy.setPixelColor(pixels[j], i, j);
         }
+      }
+      
+      var black = 0x000000FF;
+      for (var j = 0; j < height; j++) {
+        copy.setPixelColor(black, offset, j);
+        copy.setPixelColor(black, offset+1, j);
+        copy.setPixelColor(black, offset-1, j);
       }
       
       // return the modded copy as a jpeg
@@ -102,6 +102,7 @@ app.get("/stretch", function (request, response) {
         response.send(buffer);
       });
     }).catch(function(err) {
+      console.log('jimp', err);
       response.send('jimp error');
     });
   }).on('error', function(err) {
